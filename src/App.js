@@ -1,3 +1,5 @@
+import { decorate, observable } from "mobx";
+import {observer} from "mobx-react";
 import React from 'react';
 
 const scaleNames = {
@@ -5,108 +7,65 @@ const scaleNames = {
   f: "Fahrenheit",
 };
 
-class TemperatureInput extends React.Component {
+class TemperatureStore {
+  celsius = "";
+  fahrenheit = "";
+}
 
-  static temperatureChanged = "temperaturechanged";
+decorate(TemperatureStore, {
+  celsius: observable,
+  fahrenheit: observable
+});
 
-  toCelsius = (fahrenheit) => (fahrenheit - 32) * 5 / 9;
+const TemperatureInput = observer(({ temperature, scale }) => {
 
-  toFahrenheit = (celsius) => (celsius * 9 / 5) + 32;
+  const toCelsius = (fahrenheit) => (fahrenheit - 32) * 5 / 9;
 
-  isActiveInput = true;
+  const toFahrenheit = (celsius) => (celsius * 9 / 5) + 32;
 
-  getTemperature = () => this.isActiveInput ? this.state.temperature :
-                         isNaN(this.state.temperature) ? "" : this.state.temperature.toString();
-
-  publishTemperatureChanged =
+  const temperatureChanged =
     (s) => {
-
-      this.setState({ temperature: s});
 
       const temp = parseFloat(s);
 
-      const data = {
-        celsius: this.props.scale === "c" ? temp : this.toCelsius(temp),
-        fahrenheit: this.props.scale === "f" ? temp : this.toFahrenheit(temp),
-        sourceScale: this.props.scale,
-      };
+      temperature.celsius = scale === "c" ? s : (isNaN(temp) ? "" : toCelsius(temp));
 
-      publish(TemperatureInput.temperatureChanged, data);
+      temperature.fahrenheit = scale === "f" ? s : (isNaN(temp) ? "" : toFahrenheit(temp));
     };
 
-  onTemperatureChanged = (e) => {
-    if (this.props.scale !== e.sourceScale) {
-      this.isActiveInput = false;
-      this.setState({ temperature: this.props.scale === "c" ? e.celsius : e.fahrenheit });
-    }
-    else{
-      this.isActiveInput = true;
-    }
-  };
-
-  render = () => (
+  return (
     <fieldset>
-      <legend>Enter temperature in {scaleNames[this.props.scale]}:</legend>
-      <input value={this.getTemperature()} onInput={(e) => this.publishTemperatureChanged(e.currentTarget.value)} />
+      <legend>Enter temperature in {scaleNames[scale]}:</legend>
+      <input value={scale === "c" ? temperature.celsius : temperature.fahrenheit}
+        onInput={(e) => temperatureChanged(e.currentTarget.value)}
+      />
     </fieldset>
   );
-
-  constructor(props) {
-    super(props);
-    this.state = { temperature: "" };
-    subscribe(TemperatureInput.temperatureChanged, this.onTemperatureChanged);
-  }
 }
+);
 
-class BoilingVerdict extends React.Component {
+const BoilingVerdict = observer(({ temperature }) => {
 
-  onTemperatureChanged = (e) => {
+  console.log(`temperature ${temperature.celsius}`);
 
-    if (isNaN(e.celsius)) {
-      this.setState({ verdict: '' });
-      return;
-    }
-
-    const notOrEmptyString = e.celsius < 100 ? "not" : "";
-
-    this.setState({ verdict: `The water would ${notOrEmptyString} boil` });
-  };
-
-  render = () => this.state.verdict;
-
-  constructor(props) {
-    super(props);
-    this.state = { verdict: '' };
-    subscribe(TemperatureInput.eventName, this.onTemperatureChanged);
+  if (isNaN(parseFloat(temperature.celsius))) {
+    return "";
   }
+
+  const notOrEmptyString = temperature.celsius < 100 ? "not" : "";
+
+  return `The water would ${notOrEmptyString} boil`;
 }
+)
+
+const store = new TemperatureStore();
 
 const Calculator = () => (
   <div>
-    <TemperatureInput scale="c" />
-    <TemperatureInput scale="f" />
-    <BoilingVerdict />
+    <TemperatureInput temperature={store} scale="c" />
+    <TemperatureInput temperature={store} scale="f" />
+    <BoilingVerdict temperature={store} />
   </div>
-);
-
-const customEvents = new Map();
-
-const publish = (eventName, data) => {
-
-  const listeners = customEvents.get(eventName);
-
-  const _ = listeners && listeners.forEach((a) => a(data));
-};
-
-const subscribe = (customEventName, listener) => {
-
-  if (!customEvents.has(customEventName)) {
-    customEvents.set(customEventName, []);
-  }
-
-  const handlers = customEvents.get(customEventName);
-
-  handlers.push(listener);
-};
+)
 
 export default Calculator;
