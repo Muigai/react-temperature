@@ -1,71 +1,67 @@
-import { decorate, observable } from "mobx";
-import {observer} from "mobx-react";
 import React from 'react';
+import { createStore } from 'redux';
+
+const CHANGE = "change";
+
+function temperature(_, { type, value, activeScale }) {
+
+  const toCelsius = (fahrenheit) => (fahrenheit - 32) * 5 / 9;
+
+  const toFahrenheit = (celsius) => (celsius * 9 / 5) + 32;
+
+  switch (type) {
+    case CHANGE:
+
+      const temp = parseFloat(value);
+
+      const c = activeScale === "c" ? value : (isNaN(temp) ? "" : toCelsius(temp));
+
+      const f = activeScale === "f" ? value : (isNaN(temp) ? "" : toFahrenheit(temp));
+
+      return {celsius: c, fahrenheit: f};
+    default:
+      return {celsius : "", fahrenheit : ""};
+  }
+}
 
 const scaleNames = {
   c: "Celsius",
   f: "Fahrenheit",
 };
 
-class TemperatureStore {
-  celsius = "";
-  fahrenheit = "";
-}
-
-decorate(TemperatureStore, {
-  celsius: observable,
-  fahrenheit: observable
-});
-
-const TemperatureInput = observer(({ temperature, scale }) => {
-
-  const toCelsius = (fahrenheit) => (fahrenheit - 32) * 5 / 9;
-
-  const toFahrenheit = (celsius) => (celsius * 9 / 5) + 32;
-
-  const temperatureChanged =
-    (s) => {
-
-      const temp = parseFloat(s);
-
-      temperature.celsius = scale === "c" ? s : (isNaN(temp) ? "" : toCelsius(temp));
-
-      temperature.fahrenheit = scale === "f" ? s : (isNaN(temp) ? "" : toFahrenheit(temp));
-    };
+const TemperatureInput = ({ store, scale }) => {
 
   return (
     <fieldset>
       <legend>Enter temperature in {scaleNames[scale]}:</legend>
-      <input value={scale === "c" ? temperature.celsius : temperature.fahrenheit}
-        onInput={(e) => temperatureChanged(e.currentTarget.value)}
+      <input value={scale === "c" ? store.getState().celsius : store.getState().fahrenheit}
+        onInput={(e) => store.dispatch({type: CHANGE, value: e.currentTarget.value, activeScale: scale})}
       />
     </fieldset>
   );
-}
-);
+};
 
-const BoilingVerdict = observer(({ temperature }) => {
+const BoilingVerdict = ({ store }) => {
 
-  console.log(`temperature ${temperature.celsius}`);
-
-  if (isNaN(parseFloat(temperature.celsius))) {
+  if (isNaN(parseFloat(store.getState().celsius))) {
     return "";
   }
 
-  const notOrEmptyString = temperature.celsius < 100 ? "not" : "";
+  const notOrEmptyString = store.getState().celsius < 100 ? "not" : "";
 
   return `The water would ${notOrEmptyString} boil`;
-}
-)
+};
 
-const store = new TemperatureStore();
+const store = createStore(temperature);
 
-const Calculator = () => (
+const Calculator = { App: () => (
   <div>
-    <TemperatureInput temperature={store} scale="c" />
-    <TemperatureInput temperature={store} scale="f" />
-    <BoilingVerdict temperature={store} />
+    <TemperatureInput store={store} scale="c" />
+    <TemperatureInput store={store} scale="f" />
+    <BoilingVerdict store={store} />
   </div>
-)
+),
+store: store};
+
 
 export default Calculator;
