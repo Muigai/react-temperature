@@ -46,8 +46,6 @@ const TemperatureInput = observer(({ temperature, scale }) => {
 
 const BoilingVerdict = observer(({ temperature }) => {
 
-  console.log(`temperature ${temperature.celsius}`);
-
   if (isNaN(parseFloat(temperature.celsius))) {
     return "";
   }
