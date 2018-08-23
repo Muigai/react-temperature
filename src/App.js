@@ -17,7 +17,9 @@ decorate(TemperatureStore, {
   fahrenheit: observable
 });
 
-const TemperatureInput = observer(({ temperature, scale }) => {
+const temperature = new TemperatureStore();
+
+const TemperatureInput = observer(({ scale }) => {
 
   const toCelsius = (fahrenheit) => (fahrenheit - 32) * 5 / 9;
 
@@ -44,7 +46,7 @@ const TemperatureInput = observer(({ temperature, scale }) => {
 }
 );
 
-const BoilingVerdict = observer(({ temperature }) => {
+const BoilingVerdict = observer(() => {
 
   if (isNaN(parseFloat(temperature.celsius))) {
     return "";
@@ -56,13 +58,11 @@ const BoilingVerdict = observer(({ temperature }) => {
 }
 )
 
-const store = new TemperatureStore();
-
 const Calculator = () => (
   <div>
-    <TemperatureInput temperature={store} scale="c" />
-    <TemperatureInput temperature={store} scale="f" />
-    <BoilingVerdict temperature={store} />
+    <TemperatureInput scale="c" />
+    <TemperatureInput  scale="f" />
+    <BoilingVerdict />
   </div>
 )
 
