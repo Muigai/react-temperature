@@ -1,4 +1,7 @@
+import EventEmitter from 'events';
 import React from 'react';
+
+const emitter = new EventEmitter();
 
 const scaleNames = {
   c: "Celsius",
@@ -21,7 +24,7 @@ class TemperatureInput extends React.Component {
         sourceScale: this.props.scale,
       };
 
-      publish(temperatureChanged, data);
+      emitter.emit(temperatureChanged, data);
     };
 
   onTemperatureChanged = (e) => {
@@ -53,7 +56,7 @@ class TemperatureInput extends React.Component {
   constructor(props) {
     super(props);
     this.state = { temperature: "" };
-    subscribe(temperatureChanged, this.onTemperatureChanged);
+    emitter.addListener(temperatureChanged, this.onTemperatureChanged);
   }
 }
 
@@ -68,7 +71,7 @@ class BoilingVerdict extends React.Component {
       return;
     }
 
-    const temperature = this.scale === "c" ? e.value : toCelsius(e.value);
+    const temperature = e.sourceScale === "c" ? e.value : toCelsius(e.value);
 
     const notOrEmptyString = temperature < 100 ? "not" : "";
 
@@ -80,7 +83,7 @@ class BoilingVerdict extends React.Component {
   constructor(props) {
     super(props);
     this.state = { verdict: '' };
-    subscribe(temperatureChanged, this.onTemperatureChanged);
+    emitter.addListener(temperatureChanged, this.onTemperatureChanged);
   }
 }
 
@@ -91,25 +94,5 @@ const Calculator = () => (
     <BoilingVerdict />
   </div>
 );
-
-const customEvents = new Map();
-
-const publish = (eventName, data) => {
-
-  const listeners = customEvents.get(eventName);
-
-  const _ = listeners && listeners.forEach((a) => a(data));
-};
-
-const subscribe = (customEventName, listener) => {
-
-  if (!customEvents.has(customEventName)) {
-    customEvents.set(customEventName, []);
-  }
-
-  const handlers = customEvents.get(customEventName);
-
-  handlers.push(listener);
-};
 
 export default Calculator;
